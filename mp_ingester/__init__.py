@@ -6,3 +6,4 @@ __author__ = """Adamos Kyriakou"""
 __email__ = 'somada141@gmail.com'
 __version__ = '0.1.0'
 
+from mp_ingester import config
