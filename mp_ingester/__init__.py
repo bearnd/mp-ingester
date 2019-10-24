@@ -9,3 +9,4 @@ __version__ = '0.1.0'
 from mp_ingester import config
 from mp_ingester import excs
 from mp_ingester import loggers
+from mp_ingester import sentry
