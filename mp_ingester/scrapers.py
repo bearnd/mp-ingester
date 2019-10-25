@@ -117,7 +117,7 @@ class ScraperHealthTopicGroupClasses(ScraperMedlineBase):
             results.append(
                 {
                     "name": health_topic_class_name,
-                    "health_topics": [
+                    "health_topic_groups": [
                         {
                             "name": elements_group.text,
                             "url": elements_group.attrib["href"],
