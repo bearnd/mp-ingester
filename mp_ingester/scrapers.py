@@ -128,3 +128,71 @@ class ScraperHealthTopicGroupClasses(ScraperMedlineBase):
             )
 
         return results
+
+
+class ScraperHealthTopicGroupBodyParts(ScraperMedlineBase):
+    """ Class to scrape a MedlinePlus health-topic group page and retrieve the
+        health-topic group body parts and health-topics under them.
+    """
+
+    def __init__(self, medline_health_topic_group_url: str, **kwargs):
+        """Constructor and initialization.
+
+        Args:
+            medline_health_topics_url (str): The URL of the MedlinePlus health
+                topics.
+        """
+
+        super(ScraperHealthTopicGroupBodyParts, self).__init__(
+            medline_url=medline_health_topic_group_url, **kwargs
+        )
+
+        self.medline_health_topic_group_url = medline_health_topic_group_url
+
+    def scrape(self) -> List[Dict[str, Union[str, List[Dict[str, str]]]]]:
+        """ Scrapes the MedlinePlus health topics page and retrieves the
+            MedlinePlus health-topic groups categorized by their assigned class.
+
+        Returns:
+            List[Dict[str, Union[str, List[Dict[str, str]]]]]: The scraped data.
+        """
+
+        results = []
+
+        response = self.fetch_page()
+
+        # Parse the HTML source with the XML parser.
+        doc = lxml_html.parse(io.StringIO(response.content.decode("utf-8")))
+
+        # Retrieve the body-part elements.
+        elements_body_parts = doc.xpath(
+            "//div[@class='tp_rdbox_bborder']/div/ul/li/a"
+        )
+
+        for element_body_part in elements_body_parts:
+            # Retrieve the body part ID for this element.
+            element_body_part_id = element_body_part.attrib["id"].replace(
+                "_menu", ""
+            )
+
+            # Retrieve the links to health-topics under the given body-part.
+            elements_health_topics = doc.xpath(
+                f"//div[@id='{element_body_part_id}']"
+                f"/div[@class='tp_rdbox_bborder']"
+                f"/div/div/ul/li/a"
+            )
+
+            results.append(
+                {
+                    "name": element_body_part.text,
+                    "health_topics": [
+                        {
+                            "name": element_health_topic.text,
+                            "url": element_health_topic.attrib["href"],
+                        }
+                        for element_health_topic in elements_health_topics
+                    ],
+                }
+            )
+
+        return results
