@@ -19,3 +19,12 @@ class ConfigFileInvalid(Exception):
 
     def __init__(self, message, *args):
         super(ConfigFileInvalid, self).__init__(message, *args)
+
+
+class MedlinePlusHttpRequestGetError(Exception):
+    """ Exception raised when an HTTP GET request against medlineplus.gov
+        fails.
+    """
+
+    def __init__(self, message, *args):
+        super(MedlinePlusHttpRequestGetError, self).__init__(message, *args)
