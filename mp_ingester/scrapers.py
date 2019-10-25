@@ -20,7 +20,50 @@ class ScraperBase:
         )
 
 
-class ScraperHealthTopicGroups(ScraperBase):
+class ScraperMedlineBase(ScraperBase):
+    """ MedlinePlus scraper base-class."""
+
+    def __init__(self, medline_url: str, **kwargs):
+        """ Constructor and initialization.
+
+        Args:
+            medline_url (str): The URL of the MedlinePlus page that will be
+                scraped.
+        """
+
+        super(ScraperMedlineBase, self).__init__(**kwargs)
+
+        self.medline_url = medline_url
+
+    def fetch_page(self) -> requests.Response:
+        """ Fetches the URL defined under `self.medline_url` and returns the
+            response.
+
+        Returns:
+            requests.Response: The response retrieved when fetching
+                `self.medline_url`.
+        """
+
+        self.logger.info(
+            f"Retrieving HTML content under URL {self.medline_url}."
+        )
+
+        response = requests.get(url=self.medline_url)
+
+        if not response.ok:
+            msg = (
+                f"Could not retrieve HTML content under URL "
+                f"{self.medline_url}. A response with status code"
+                f"of {response.status_code} and content of '{response.content}'"
+                f"was received."
+            )
+            self.logger.error(msg)
+            raise (MedlinePlusHttpRequestGetError(msg))
+
+        return response
+
+
+class ScraperHealthTopicGroupClasses(ScraperMedlineBase):
     """ Class to scrape the MedlinePlus health-topic page and retrieve the
         health-topic group classes and health-topic groups under them.
     """
@@ -33,7 +76,9 @@ class ScraperHealthTopicGroups(ScraperBase):
                 topics.
         """
 
-        super(ScraperHealthTopicGroups, self).__init__(**kwargs)
+        super(ScraperHealthTopicGroupClasses, self).__init__(
+            medline_url=medline_health_topics_url, **kwargs
+        )
 
         self.medline_health_topics_url = medline_health_topics_url
 
@@ -47,22 +92,7 @@ class ScraperHealthTopicGroups(ScraperBase):
 
         results = []
 
-        self.logger.info(
-            f"Retrieving HTML content under URL "
-            f"{self.medline_health_topics_url}."
-        )
-
-        response = requests.get(url=self.medline_health_topics_url)
-
-        if not response.ok:
-            msg = (
-                f"Could not retrieve HTML content under URL "
-                f"{self.medline_health_topics_url}. A response with status code"
-                f"of {response.status_code} and content of '{response.content}'"
-                f"was received."
-            )
-            self.logger.error(msg)
-            raise (MedlinePlusHttpRequestGetError(msg))
+        response = self.fetch_page()
 
         # Parse the HTML source with the XML parser.
         doc = lxml_html.parse(io.StringIO(response.content.decode("utf-8")))
