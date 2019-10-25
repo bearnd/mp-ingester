@@ -9,12 +9,10 @@ from mp_ingester.excs import MedlinePlusHttpRequestGetError
 
 
 class ScraperBase:
-    def __init__(self, **kwargs):
-        """Constructor and initialization.
+    """ Scraper base-class."""
 
-        Args:
-            api_key (str): The Google Places API key.
-        """
+    def __init__(self, **kwargs):
+        """ Constructor and initialization."""
 
         self.logger = create_logger(
             logger_name=type(self).__name__,
