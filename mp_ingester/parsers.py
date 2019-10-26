@@ -140,6 +140,15 @@ class ParserXmlMedlineGroups(ParserXmlBase):
     def parse_health_topic_group(
         self, element: etree.Element
     ) -> Dict[str, Union[str, int]]:
+        """ Parses an element of type `group` and returns the values of the
+            contained elements.
+
+        Args:
+            element (etree.Element): The element of type `group`.
+
+        Returns:
+            dict: The parsed values of the contained elements.
+        """
 
         if element is None:
             return {}
