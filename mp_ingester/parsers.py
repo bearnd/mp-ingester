@@ -126,3 +126,70 @@ class ParserXmlBase(object):
     def parse(self, filename_xml: str) -> Dict[str, Any]:
         raise NotImplementedError
 
+
+class ParserXmlMedlineGroups(ParserXmlBase):
+    """ XML parser class meant to parse `MedlinePlus Health Topic Group XML`
+        files.
+    """
+
+    def __init__(self, **kwargs):
+        """ Constructor."""
+
+        super(ParserXmlMedlineGroups, self).__init__(kwargs=kwargs)
+
+    def parse_health_topic_group(
+        self, element: etree.Element
+    ) -> Dict[str, Union[str, int]]:
+
+        if element is None:
+            return {}
+
+        # Skip Spanish entities.
+        if self._eav(element=element, attribute="language") == "Spanish":
+            return {}
+
+        health_topic_group = {
+            "id": int(self._eav(element=element, attribute="id")),
+            "url": self._eav(element=element, attribute="url"),
+            "name": self._et(element=element),
+        }
+
+        return health_topic_group
+
+    def parse(self, filename_xml: str) -> Iterable[Dict[str, Union[str, int]]]:
+        """ Parses a `MedlinePlus Health Topic Group XML` file and yields
+            Python dictionaries containing the data for each health-topic group.
+
+        Args:
+            filename_xml (str): The path to the `MedlinePlus Health Topic Group
+                XML` file.
+
+        Returns:
+            Iterable[Dict[str, Union[str, int]]]: An iterable yielding Python
+                dictionaries containing the data for each health-topic group
+                defined under the `MedlinePlus Health Topic Group XML` file.
+        """
+
+        self.logger.info(
+            f"Parsing MedlinePlus Health Topic Group XML file '{filename_xml}'"
+        )
+
+        # Open the XML file.
+        file_xml = self.open_xml_file(filename_xml=filename_xml)
+
+        # Retrieve an iterable that yields `<group>` XML elements from the XML
+        # file.
+        elements = self.generate_xml_elements(
+            file_xml=file_xml, element_tag="group"
+        )
+
+        # Iterate over the `<group>` elements and yield dictionaries with the
+        # parsed data.
+        for element in elements:
+            health_topic_group = self.parse_health_topic_group(element)
+
+            # Guard against empty documents.
+            if not health_topic_group:
+                continue
+
+            yield health_topic_group
