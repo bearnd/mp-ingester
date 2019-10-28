@@ -89,3 +89,90 @@ class IngesterMedlineBodyParts(IngesterDocumentBase):
             health_topic_group_id=health_topic_group.health_topic_group_id,
         )
 
+
+class IngesterMedlineGroups(IngesterDocumentBase):
+    """ Ingester class meant to ingest parsed `MedlinePlus Health Topic Group
+        XML` data.
+    """
+
+    def __init__(
+        self,
+        dal: DalMedline,
+        health_topic_group_classes: List[
+            Dict[str, Union[str, List[Dict[str, str]]]]
+        ],
+        **kwargs,
+    ):
+        """ Constructor.
+
+        Args:
+            dal (DalMedline): The DAL to be used to interact with the database.
+        """
+
+        super(IngesterMedlineGroups, self).__init__(dal=dal, kwargs=kwargs)
+
+        self.health_topic_group_classes = health_topic_group_classes
+
+    def _get_group_class(self, health_topic_group_name: str) -> Optional[str]:
+        """ Retrieve the name of the health-topic group class based on the
+            name of the health-topic group from the scraped data.
+
+        Args:
+            health_topic_group_name (str): The name of the health-topic group.
+
+        Returns:
+            Optional[str]: The name of the encompassing health-topic group class
+                or `None` if none was found.
+        """
+
+        for entry in self.health_topic_group_classes:
+            health_topic_group_class_name = entry["name"]
+            for health_topic_group in entry["health_topic_groups"]:
+                if health_topic_group["name"] == health_topic_group_name:
+                    return health_topic_group_class_name
+
+        return None
+
+    @log_ingestion_of_document(document_name="group")
+    def ingest(self, document: Dict) -> Optional[int]:
+        """ Ingests a parsed element of type `<group>` and creates a
+            `HealthTopicGroup` record.
+
+        Args:
+            document (Dict): The element of type `<group`> parsed into a
+                dictionary.
+
+        Returns:
+             int: The primary-key ID of the `HealthTopicGroup` record.
+        """
+
+        if not document:
+            return None
+
+        group_name = document["name"]
+
+        # Retrieve the name of the health-topic group class name that includes
+        # the given group.
+        class_name = self._get_group_class(health_topic_group_name=group_name)
+
+        if not class_name:
+            raise ValueError
+
+        # Retrieve the matching `HealthTopicGroupClass` object.
+        # noinspection PyTypeChecker
+        obj_class = self.dal.get_by_attr(
+            orm_class=HealthTopicGroupClass,
+            attr_name="name",
+            attr_value=class_name,
+        )  # type: HealthTopicGroupClass
+
+        if not obj_class:
+            raise ValueError
+
+        self.dal.iodu_health_topic_group(
+            ui=str(document["id"]),
+            name=document["name"],
+            url=document["url"],
+            health_topic_group_class_id=obj_class.health_topic_group_class_id,
+        )
+
