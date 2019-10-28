@@ -13,3 +13,4 @@ from mp_ingester import scrapers
 from mp_ingester import sentry
 from mp_ingester import parsers
 from mp_ingester import ingesters
+from mp_ingester import mp_ingester
