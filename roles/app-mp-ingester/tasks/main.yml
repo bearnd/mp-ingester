@@ -1,0 +1,210 @@
+---
+
+- name: Update apt cache.
+  apt:
+    update_cache: yes
+    cache_valid_time: 86400
+  ignore_errors: true
+  become: true
+
+- name: Add the Deadsnakes apt repository to sources.
+  apt_repository:
+    repo: ppa:deadsnakes/ppa
+    state: present
+    update_cache: yes
+
+- name: Install apt dependencies.
+  apt:
+    name: "{{ item }}"
+    state: latest
+  with_items: "{{ dependencies.apt }}"
+  become: true
+
+- name: Install PostgreSQL.
+  include_role:
+    name: geerlingguy.postgresql
+  ignore_errors: true
+  when: is_vagrant is defined and is_vagrant == True
+
+- name: Create schemata in the `fightfor` database under PostgreSQL.
+  postgresql_schema:
+    database: "fightfor"
+    name: "{{ item }}"
+    owner: "{{ system.user }}"
+    state: present
+  with_items: "{{ postgresql_schemata }}"
+  become: true
+  become_user: postgres
+  when: is_vagrant is defined and is_vagrant == True
+
+- name: Create schemata in the `test` database under PostgreSQL.
+  postgresql_schema:
+    database: "test"
+    name: "{{ item }}"
+    owner: "{{ system.user }}"
+    state: present
+  with_items: "{{ postgresql_schemata }}"
+  become: true
+  become_user: postgres
+  when: is_vagrant is defined and is_vagrant == True
+
+- name: Install extensions in the `fightfor` database under PostgreSQL.
+  postgresql_ext:
+    db: "fightfor"
+    name: "{{ item }}"
+  with_items: "{{ postgresql_extensions }}"
+  become: true
+  become_user: postgres
+  when: is_vagrant is defined and is_vagrant == True
+
+- name: Install extensions in the `test` database under PostgreSQL.
+  postgresql_ext:
+    db: "test"
+    name: "{{ item }}"
+  with_items: "{{ postgresql_extensions }}"
+  become: true
+  become_user: postgres
+  when: is_vagrant is defined and is_vagrant == True
+
+- name: Create service group.
+  group:
+    state: present
+    name: "{{ system.group }}"
+  become: true
+
+- name: Create service user.
+  user:
+    state: present
+    name: "{{ system.user }}"
+    createhome: yes
+    group: "{{ system.group }}"
+    shell: "/bin/false"
+  become: true
+
+- name: Create application directories.
+  file:
+    state: directory
+    path: "{{ item }}"
+    owner: "{{ system.user }}"
+    mode: 0755
+  with_items:
+    - "{{ system.directories.config }}"
+    - "{{ system.directories.share }}"
+    - "{{ system.directories.run }}"
+    - "{{ system.directories.log }}"
+    - "{{ system.directories.virtual_env }}"
+  become: true
+
+- name: Copy PostgreSQL configuration files.
+  copy:
+    src: "{{ item }}"
+    dest: "//etc/postgresql/9.5/main/{{ item }}"
+    owner: "postgres"
+    mode: 0600
+  with_items:
+    - "pg_hba.conf"
+    - "postgresql.conf"
+  when: is_vagrant is defined and is_vagrant == True
+
+- name: Install system-level Python dependencies
+  pip:
+    name: "{{ item }}"
+    state: latest
+  with_items: "{{ dependencies.pip.system }}"
+  become: true
+
+- name: Install deployment-level pip dependencies not included in a
+        `requirements.txt` within the virtual environment
+  pip:
+    name: "{{ item }}"
+    state: latest
+    virtualenv: "{{ system.directories.virtual_env }}"
+    virtualenv_python: python3.7
+  with_items: "{{ dependencies.pip.virtualenv }}"
+  become: true
+  become_user: "{{ system.user }}"
+
+- name: Checkout the project source code from Git (Production)
+  git:
+    repo: "https://{{ gitlab_deploy_token_username }}:{{ gitlab_deploy_token_password }}@gitlab.com/bearnd/mp-ingester.git"
+    dest: "{{ system.directories.share }}/src"
+    depth: 1
+    force: yes
+    accept_hostkey: true
+  when: is_vagrant is not defined or is_vagrant == False
+  become: true
+
+- name: Create `test` configuration file (Vagrant).
+  template:
+    src: "config_test.json.j2"
+    dest: "{{ system.directories.config }}/{{ project.name }}-test.json"
+    owner: "{{ system.user }}"
+    group: "{{ system.group }}"
+    mode: 0600
+  become: true
+  become_user: "{{ system.user }}"
+  when: is_vagrant is defined and is_vagrant == True
+
+- name: Create `dev` configuration file (Vagrant).
+  template:
+    src: "config_dev.json.j2"
+    dest: "{{ system.directories.config }}/{{ project.name }}-dev.json"
+    owner: "{{ system.user }}"
+    group: "{{ system.group }}"
+    mode: 0600
+  become: true
+  become_user: "{{ system.user }}"
+  when: is_vagrant is defined and is_vagrant == True
+
+- name: Create `prod` configuration file (Vagrant).
+  template:
+    src: "config_prod.json.j2"
+    dest: "{{ system.directories.config }}/{{ project.name }}-prod.json"
+    owner: "{{ system.user }}"
+    group: "{{ system.group }}"
+    mode: 0600
+  become: true
+  become_user: "{{ system.user }}"
+  when: is_vagrant is not defined or is_vagrant == False
+
+- name: Install development-only Python package requirements (Vagrant).
+  pip:
+    chdir: "/home/vagrant/{{ project.name }}"
+    requirements: requirements_dev.txt
+    state: latest
+    virtualenv: "{{ system.directories.virtual_env }}"
+    virtualenv_python: python3.7
+  when: is_vagrant is defined and is_vagrant == True
+  become: true
+  become_user: "{{ system.user }}"
+
+- name: Install Python package requirements (Production).
+  pip:
+    chdir: "{{ system.directories.share }}/src"
+    requirements: requirements.txt
+    state: latest
+    virtualenv: "{{ system.directories.virtual_env }}"
+    virtualenv_python: python3.7
+  become: true
+  become_user: "{{ system.user }}"
+  when: is_vagrant is not defined or is_vagrant == False
+
+- name: Set up a daily cron-job to ingest the MedlinePlus Health Topic Group
+        data.
+  cron:
+    name: "Ingest the MedlinePlus Health Topic Group data"
+    special_time: daily
+    job: "cd {{ system.directories.share }}/src && {{ system.directories.virtual_env }}/bin/python -m mp_ingester.mp_ingester --mode groups --config-file='{{ system.directories.config }}/{{ project.name }}-prod.json' && curl -fsS --retry 3 https://hc-ping.com/c0a4b38c-8b5b-4615-8be9-906f11d54d10 > /dev/null"
+  become: true
+  become_user: "{{ system.user }}"
+  when: is_vagrant is not defined or is_vagrant == False
+
+
+- name: Set up a daily cron-job to ingest the MedlinePlus Health Topic data.
+  cron:
+    name: "Ingest the MedlinePlus Health Topic data"
+    special_time: daily
+    job: "cd {{ system.directories.share }}/src && {{ system.directories.virtual_env }}/bin/python -m mp_ingester.mp_ingester --mode topics --config-file='{{ system.directories.config }}/{{ project.name }}-prod.json' && curl -fsS --retry 3 https://hc-ping.com/e90d13ca-0909-464f-852a-b8f5fe923668 > /dev/null"
+  become: true
+  become_user: "{{ system.user }}"
+  when: is_vagrant is not defined or is_vagrant == False

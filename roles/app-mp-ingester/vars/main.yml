@@ -1,0 +1,148 @@
+---
+
+# PostgreSQL variables
+
+# Define the encrypted SQL password variable outside the nested structures due
+# to the issue described in https://stackoverflow
+# .com/questions/50770524/ansible-vault-inline-variable-with-to-nice-json
+# -unexpected-templating-type-erro
+sql_password: !vault |
+    $ANSIBLE_VAULT;1.1;AES256
+    34353435633766663730393335616432313439663038336261323934316333376233333632623363
+    3735346634373938653834353762623865383733346333640a343065396533653631616164653266
+    37613466666238373930303364643562333539383365363835336631623665316438346433656432
+    6666636435303334390a383037393139393734386635323263336639626432343234613163363139
+    37353039316262643061376337303335623863636133366630666364356430346530306434376230
+    3262636261353330396234336638386438666566626630333634
+
+# Sentry variables.
+sentry_dsn: !vault |
+    $ANSIBLE_VAULT;1.1;AES256
+    61646138323265636563396431393631653562383962646338303261626635623233663761663532
+    3864653962313965613238373066616632383637323864660a306266613530663461323634363031
+    32646262303661313035396638646661366338386631666335313633623732373930646663656461
+    3138336434323166320a653366353963316166343035633266306538656638346232373035666265
+    61306661373463393033323964393338633035373732356166303230616662353463336562373434
+    33336364363734393261613234386363656430616334393666646265346436363531326465633638
+    383261663638346638396339373131353136
+
+# GitLab variables.
+gitlab_deploy_token_username: "mp-ingester-deployer"
+gitlab_deploy_token_password: !vault |
+    $ANSIBLE_VAULT;1.1;AES256
+    64343038346335383164383364336563346630336666343163323230363037303033343734623161
+    3236663461646265356264303634646634383435366436370a353464366665666164373738643430
+    38613235633862333133623236633135383238373066633437333831393435356336383961336238
+    3230653432633736640a313031306330366232373939386266346130336561356132646462646566
+    38303934636662393939326666353831356333666337383535396534643262653763
+
+# PostgreSQL Server Settings.
+postgresql_python_library: "python-psycopg2"
+
+# PostgreSQL Databases.
+postgresql_databases:
+  - name: "fightfor"
+    port: 5432
+  - name: "test"
+    port: 5432
+
+# PostgreSQL Users.
+postgresql_users:
+  - name: "{{ system.user }}"
+    password: "{{ sql_password }}"
+    port: 5432
+
+# PostgreSQL schemata.
+postgresql_schemata:
+  - clinicaltrials
+  - pubmed
+  - mesh
+  - app
+  - medline
+
+# PostgreSQL extensions.
+postgresql_extensions:
+  - pg_trgm
+  - postgis
+
+
+project:
+  name: "mp-ingester"
+
+system:
+  # User name.
+  user: "mp_ingester"
+  # User group.
+  group: "mp_ingester"
+  # Application directories.
+  directories:
+    config: "/etc/{{ project.name }}"
+    share: "/usr/local/share/{{ project.name }}"
+    run: "/var/run/{{ project.name }}"
+    log: "/var/log/{{ project.name }}"
+    virtual_env: "/usr/local/share/{{ project.name }}/venvs/{{ project.name }}"
+
+# Application Configuration Settings.
+config:
+  test:
+    # General Settings.
+    logger_level: DEBUG
+
+    # PostgreSQL Server Configuration Settings.
+    sql_host: "localhost"
+    sql_port: 5432
+    sql_username: "{{ system.user }}"
+    sql_password: "{{ sql_password }}"
+    sql_db: "test"
+
+    # MedlinePlus configuration settings.
+    medline:
+        health_topics_url: "https://medlineplus.gov/healthtopics.html"
+        xml_files_url: "https://medlineplus.gov/xml.html"
+        group_class_body_name: "Body Location/Systems"
+
+    # Sentry configuration settings.
+    sentry:
+        dsn:
+
+  dev:
+    # General Settings.
+    logger_level: DEBUG
+
+    # PostgreSQL Server Configuration Settings.
+    sql_host: "localhost"
+    sql_port: 5432
+    sql_username: "{{ system.user }}"
+    sql_password: "{{ sql_password }}"
+    sql_db: "fightfor"
+
+    # MedlinePlus configuration settings.
+    medline:
+        health_topics_url: "https://medlineplus.gov/healthtopics.html"
+        xml_files_url: "https://medlineplus.gov/xml.html"
+        group_class_body_name: "Body Location/Systems"
+
+    # Sentry configuration settings.
+    sentry:
+        dsn:
+
+  prod:
+    # General Settings.
+    logger_level: INFO
+
+    # PostgreSQL Server Configuration Settings.
+    sql_host: "localhost"
+    sql_port: 5432
+    sql_username: "{{ system.user }}"
+    sql_password: "{{ sql_password }}"
+    sql_db: "fightfor"
+
+    # MedlinePlus configuration settings.
+    medline:
+        health_topics_url: "https://medlineplus.gov/healthtopics.html"
+        xml_files_url: "https://medlineplus.gov/xml.html"
+        group_class_body_name: "Body Location/Systems"
+
+    # Sentry configuration settings.
+    sentry:
+      dsn: "{{ sentry_dsn }}"
