@@ -56,3 +56,36 @@ class IngesterMedlineGroupClasses(IngesterDocumentBase):
 
         self.dal.iodi_health_topic_group_class(name=name)
 
+
+class IngesterMedlineBodyParts(IngesterDocumentBase):
+    """ Ingester class meant to ingest scraped body parts."""
+
+    @log_ingestion_of_document(document_name="body-part")
+    def ingest(self, name: str, health_topic_group_url: str) -> Optional[int]:
+        """ Ingests a body-part and creates a `HealthTopicBodyPart` record.
+
+        Args:
+            name (int): The name of the body-part.
+            health_topic_group_url (str): The URL of the health-topic group the
+                body-part belongs to.
+
+        Returns:
+             int: The primary-key ID of the `HealthTopicBodyPart` record.
+        """
+
+        if not name:
+            return None
+
+        # Retrieve the PK ID of the related `HealthTopicGroup` record.
+        # noinspection PyTypeChecker
+        health_topic_group = self.dal.get_by_attr(
+            orm_class=HealthTopicGroup,
+            attr_name="url",
+            attr_value=health_topic_group_url,
+        )  # type: HealthTopicGroup
+
+        self.dal.iodi_body_part(
+            name=name,
+            health_topic_group_id=health_topic_group.health_topic_group_id,
+        )
+
