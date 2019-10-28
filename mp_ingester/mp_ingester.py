@@ -6,13 +6,16 @@
 import os
 import argparse
 import asyncio
+from typing import Dict
 
+import wget
 from fform.dals_mp import DalMedline
 
 from mp_ingester.parsers import ParserXmlMedlineGroups
 from mp_ingester.parsers import ParserXmlMedlineHealthTopic
 from mp_ingester.scrapers import ScraperHealthTopicGroupClasses
 from mp_ingester.scrapers import ScraperHealthTopicGroupBodyParts
+from mp_ingester.scrapers import ScraperMedlineFiles
 from mp_ingester.scrapers import TypeHealthTopicGroupClasses
 from mp_ingester.scrapers import TypeHealthTopicBodyParts
 from mp_ingester.ingesters import IngesterMedlineGroupClasses
@@ -75,6 +78,42 @@ async def _scrape_health_topic_body_parts(
     return health_topic_body_parts
 
 
+async def _scrape_medline_files(medline_xml_files_url: str) -> Dict[str, str]:
+    # Scrape MedlinePlus for the links to the latest XML files.
+    scraper_classes = ScraperMedlineFiles()
+    medline_xml_files = await scraper_classes.scrape(
+        medline_xml_files_url=medline_xml_files_url
+    )
+
+    return medline_xml_files
+
+
+async def _download_file_groups(medline_xml_files_url: str) -> str:
+    filename_output = "/tmp/mplus_topic_groups.xml"
+    medline_xml_files = await _scrape_medline_files(
+        medline_xml_files_url=medline_xml_files_url
+    )
+
+    wget.download(
+        url=medline_xml_files["health_topic_group_xml"], out=filename_output
+    )
+
+    return filename_output
+
+
+async def _download_file_topic(medline_xml_files_url: str) -> str:
+    filename_output = "/tmp/mplus_topics.xml"
+    medline_xml_files = await _scrape_medline_files(
+        medline_xml_files_url=medline_xml_files_url
+    )
+
+    wget.download(
+        url=medline_xml_files["health_topic_xml"], out=filename_output
+    )
+
+    return filename_output
+
+
 async def main(args):
     cfg = load_config(args=args)
 
@@ -100,9 +139,18 @@ async def main(args):
         for health_topic_group_class in health_topic_group_classes:
             ingester_classes.ingest(name=health_topic_group_class["name"])
 
+        # If the filename of the XML file has not been specified then download
+        # the file from the website.
+        if not arguments.filename:
+            filename_xml = await _download_file_groups(
+                medline_xml_files_url=cfg.medline.xml_files_url
+            )
+        else:
+            filename_xml = arguments.filename
+
         # Parse the MedlinePlus health-topic group file.
         parser_groups = ParserXmlMedlineGroups()
-        groups = parser_groups.parse(filename_xml=arguments.filename)
+        groups = parser_groups.parse(filename_xml=filename_xml)
 
         # Ingest the MedlinePlus health-topic groups.
         ingester_groups = IngesterMedlineGroups(
@@ -129,9 +177,18 @@ async def main(args):
                 health_topic_group_url=health_topic_body_part["group_url"],
             )
 
+        # If the filename of the XML file has not been specified then download
+        # the file from the website.
+        if not arguments.filename:
+            filename_xml = await _download_file_topic(
+                medline_xml_files_url=cfg.medline.xml_files_url
+            )
+        else:
+            filename_xml = arguments.filename
+
         # Parse the MedlinePlus health-topic file.
         parser_topics = ParserXmlMedlineHealthTopic()
-        topics = parser_topics.parse(filename_xml=arguments.filename)
+        topics = parser_topics.parse(filename_xml=filename_xml)
 
         # Ingest the MedlinePlus health-topics.
         ingester_topics = IngesterMedlineHealthTopics(
@@ -142,7 +199,7 @@ async def main(args):
             ingester_topics.ingest(document=topic, do_ingest_links=False)
 
         # Re-ingest, this time including links to related topics.
-        topics = parser_topics.parse(filename_xml=arguments.filename)
+        topics = parser_topics.parse(filename_xml=filename_xml)
         for topic in topics:
             ingester_topics.ingest(document=topic, do_ingest_links=True)
 
@@ -156,7 +213,7 @@ if __name__ == "__main__":
         )
     )
     argument_parser.add_argument(
-        "filename", help="MedlinePlus.gov XML file to ingest."
+        "--filename", help="MedlinePlus.gov XML file to ingest.", required=False
     )
     argument_parser.add_argument(
         "--mode",
