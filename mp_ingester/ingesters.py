@@ -12,6 +12,8 @@ from fform.orm_mt import Descriptor
 
 from mp_ingester.loggers import create_logger
 from mp_ingester.utils import log_ingestion_of_document
+from mp_ingester.scrapers import TypeHealthTopicGroupClasses
+from mp_ingester.scrapers import TypeHealthTopicBodyParts
 
 
 class IngesterDocumentBase(object):
@@ -98,9 +100,7 @@ class IngesterMedlineGroups(IngesterDocumentBase):
     def __init__(
         self,
         dal: DalMedline,
-        health_topic_group_classes: List[
-            Dict[str, Union[str, List[Dict[str, str]]]]
-        ],
+        health_topic_group_classes: TypeHealthTopicGroupClasses,
         **kwargs,
     ):
         """ Constructor.
@@ -185,9 +185,7 @@ class IngesterMedlineHealthTopics(IngesterDocumentBase):
     def __init__(
         self,
         dal: DalMedline,
-        health_topic_body_parts: List[
-            Dict[str, Union[str, List[Dict[str, str]]]]
-        ],
+        health_topic_body_parts: TypeHealthTopicBodyParts,
         **kwargs,
     ):
         """ Constructor.
