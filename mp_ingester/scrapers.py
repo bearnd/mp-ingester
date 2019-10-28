@@ -8,6 +8,10 @@ from mp_ingester.loggers import create_logger
 from mp_ingester.excs import MedlinePlusHttpRequestGetError
 
 
+TypeHealthTopicGroupClasses = List[Dict[str, Union[str, List[Dict[str, str]]]]]
+TypeHealthTopicBodyParts = List[Dict[str, Union[str, List[Dict[str, str]]]]]
+
+
 class ScraperBase:
     """ Scraper base-class."""
 
