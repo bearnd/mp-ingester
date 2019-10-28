@@ -98,6 +98,7 @@ config:
     # MedlinePlus configuration settings.
     medline:
         health_topics_url: "https://medlineplus.gov/healthtopics.html"
+        xml_files_url: "https://medlineplus.gov/xml.html"
         group_class_body_name: "Body Location/Systems"
 
     # Sentry configuration settings.
@@ -118,6 +119,7 @@ config:
     # MedlinePlus configuration settings.
     medline:
         health_topics_url: "https://medlineplus.gov/healthtopics.html"
+        xml_files_url: "https://medlineplus.gov/xml.html"
         group_class_body_name: "Body Location/Systems"
 
     # Sentry configuration settings.
@@ -138,6 +140,7 @@ config:
     # MedlinePlus configuration settings.
     medline:
         health_topics_url: "https://medlineplus.gov/healthtopics.html"
+        xml_files_url: "https://medlineplus.gov/xml.html"
         group_class_body_name: "Body Location/Systems"
 
     # Sentry configuration settings.
