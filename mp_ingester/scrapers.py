@@ -38,9 +38,7 @@ class ScraperMedlineBase(ScraperBase):
                 url.
         """
 
-        self.logger.info(
-            f"Retrieving HTML content under URL {url}."
-        )
+        self.logger.info(f"Retrieving HTML content under URL {url}.")
 
         response = await requests.get(url=url)
 
@@ -174,3 +172,53 @@ class ScraperHealthTopicGroupBodyParts(ScraperMedlineBase):
             )
 
         return results
+
+
+class ScraperMedlineFiles(ScraperMedlineBase):
+    """ Class to scrape the MedlinePlus XML Files page and retrieve the links
+        to the latest XML files.
+    """
+
+    async def scrape(self, medline_xml_files_url: str) -> Dict[str, str]:
+        """ Scrapes the MedlinePlus XML Files page and retrieve the links to the
+            latest XML files.
+
+        Args:
+            medline_xml_files_url (str): The URL of the MedlinePlus XML Files
+                page
+
+        Returns:
+            Dict[str, str]: The scraped data.
+        """
+
+        response = await self.fetch_page(url=medline_xml_files_url)
+
+        # Parse the HTML source with the XML parser.
+        doc = lxml_html.parse(io.StringIO(response.content.decode("utf-8")))
+
+        # Retrieve the first `p` section containing the XML file links which
+        # should be the links to the latest files.
+        elements_latest_section = doc.xpath(
+            "//h3[contains(text(),'Files generated on')][1]"
+            "/following-sibling::p[1]"
+        )[0]
+
+        element_topics = elements_latest_section.xpath(
+            "a[contains(text(), 'MedlinePlus Health Topic XML')][1]"
+        )[0]
+
+        element_topics_zip = elements_latest_section.xpath(
+            "a[contains(text(), 'MedlinePlus Compressed Health Topic XML')][1]"
+        )[0]
+
+        element_groups = elements_latest_section.xpath(
+            "a[contains(text(), 'MedlinePlus Health Topic Group XML')][1]"
+        )[0]
+
+        result = {
+            "health_topic_xml": element_topics.attrib["href"],
+            "health_topic_compressed_xml": element_topics_zip.attrib["href"],
+            "health_topic_group_xml": element_groups.attrib["href"],
+        }
+
+        return result
