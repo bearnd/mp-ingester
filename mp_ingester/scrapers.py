@@ -120,31 +120,23 @@ class ScraperHealthTopicGroupBodyParts(ScraperMedlineBase):
         health-topic group body parts and health-topics under them.
     """
 
-    def __init__(self, medline_health_topic_group_url: str, **kwargs):
-        """Constructor and initialization.
-
-        Args:
-            medline_health_topics_url (str): The URL of the MedlinePlus health
-                topics.
-        """
-
-        super(ScraperHealthTopicGroupBodyParts, self).__init__(
-            medline_url=medline_health_topic_group_url, **kwargs
-        )
-
-        self.medline_health_topic_group_url = medline_health_topic_group_url
-
-    def scrape(self) -> List[Dict[str, Union[str, List[Dict[str, str]]]]]:
+    async def scrape(
+        self, medline_health_topic_group_url: str
+    ) -> TypeHealthTopicBodyParts:
         """ Scrapes the MedlinePlus health topics page and retrieves the
             MedlinePlus health-topic groups categorized by their assigned class.
 
+        Args:
+            medline_health_topic_group_url (str): The URL of the MedlinePlus
+                health topics.
+
         Returns:
-            List[Dict[str, Union[str, List[Dict[str, str]]]]]: The scraped data.
+            TypeHealthTopicBodyParts: The scraped data.
         """
 
         results = []
 
-        response = self.fetch_page()
+        response = await self.fetch_page(url=medline_health_topic_group_url)
 
         # Parse the HTML source with the XML parser.
         doc = lxml_html.parse(io.StringIO(response.content.decode("utf-8")))
@@ -169,7 +161,7 @@ class ScraperHealthTopicGroupBodyParts(ScraperMedlineBase):
 
             results.append(
                 {
-                    "group_url": self.medline_health_topic_group_url,
+                    "group_url": medline_health_topic_group_url,
                     "name": element_body_part.text,
                     "health_topics": [
                         {
