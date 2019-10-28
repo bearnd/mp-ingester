@@ -35,3 +35,24 @@ class IngesterDocumentBase(object):
     def ingest(self, document: Dict) -> int:
         raise NotImplementedError
 
+
+class IngesterMedlineGroupClasses(IngesterDocumentBase):
+    """ Ingester class meant to ingest scraped health-topic group class."""
+
+    @log_ingestion_of_document(document_name="group-class")
+    def ingest(self, name: str) -> Optional[int]:
+        """ Ingests a health-topic group class and creates a
+            `HealthTopicGroupClass` record.
+
+        Args:
+            name (int): The name of the health-topic group class.
+
+        Returns:
+             int: The primary-key ID of the `HealthTopicGroupClass` record.
+        """
+
+        if not name:
+            return None
+
+        self.dal.iodi_health_topic_group_class(name=name)
+
