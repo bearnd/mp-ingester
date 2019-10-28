@@ -548,7 +548,7 @@ class ParserXmlMedlineHealthTopic(ParserXmlBase):
             "date-created": datetime.datetime.strptime(
                 self._eav(element=element, attribute="date-created"), "%m/%d/%Y"
             ).date(),
-            "also_calleds": self.parse_also_calleds(
+            "also-calleds": self.parse_also_calleds(
                 element_health_topic=element
             ),
             "full-summary": self._et(element.find("full-summary")),

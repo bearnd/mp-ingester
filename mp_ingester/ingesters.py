@@ -12,6 +12,8 @@ from fform.orm_mt import Descriptor
 
 from mp_ingester.loggers import create_logger
 from mp_ingester.utils import log_ingestion_of_document
+from mp_ingester.scrapers import TypeHealthTopicGroupClasses
+from mp_ingester.scrapers import TypeHealthTopicBodyParts
 
 
 class IngesterDocumentBase(object):
@@ -98,9 +100,7 @@ class IngesterMedlineGroups(IngesterDocumentBase):
     def __init__(
         self,
         dal: DalMedline,
-        health_topic_group_classes: List[
-            Dict[str, Union[str, List[Dict[str, str]]]]
-        ],
+        health_topic_group_classes: TypeHealthTopicGroupClasses,
         **kwargs,
     ):
         """ Constructor.
@@ -185,9 +185,7 @@ class IngesterMedlineHealthTopics(IngesterDocumentBase):
     def __init__(
         self,
         dal: DalMedline,
-        health_topic_body_parts: List[
-            Dict[str, Union[str, List[Dict[str, str]]]]
-        ],
+        health_topic_body_parts: TypeHealthTopicBodyParts,
         **kwargs,
     ):
         """ Constructor.
@@ -286,13 +284,17 @@ class IngesterMedlineHealthTopics(IngesterDocumentBase):
         return obj_id
 
     @log_ingestion_of_document(document_name="health-topic")
-    def ingest(self, document: Dict) -> Optional[int]:
+    def ingest(self, document: Dict, do_ingest_links: bool) -> Optional[int]:
         """ Ingests a parsed element of type `<health-topic>` and creates a
             `HealthTopic` record.
 
         Args:
             document (Dict): The element of type `<health-topic>` parsed into a
                 dictionary.
+            do_ingest_links (bool): Whether to ingest links to other related
+                health-topics. This is set to `False` to perform an initial of
+                all topics while the second run should set it to `True` so that
+                the links can be set after all topics have been ingested.
 
         Returns:
              int: The primary-key ID of the `HealthTopic` record.
@@ -363,23 +365,24 @@ class IngesterMedlineHealthTopics(IngesterDocumentBase):
                 health_topic_id=health_topic_id, descriptor_id=descriptor_id
             )
 
-        # Retrieve the PK IDs of the related `HealthTopic` records.
-        related_health_topic_ids = []
-        for related_topic in document["related-topics"]:
-            # noinspection PyTypeChecker
-            obj_group = self.dal.get_by_attr(
-                orm_class=HealthTopic,
-                attr_name="ui",
-                attr_value=related_topic["id"],
-            )  # type: HealthTopic
-            related_health_topic_ids.append(obj_group.health_topic_id)
+        if do_ingest_links:
+            # Retrieve the PK IDs of the related `HealthTopic` records.
+            related_health_topic_ids = []
+            for related_topic in document["related-topics"]:
+                # noinspection PyTypeChecker
+                obj_group = self.dal.get_by_attr(
+                    orm_class=HealthTopic,
+                    attr_name="ui",
+                    attr_value=related_topic["id"],
+                )  # type: HealthTopic
+                related_health_topic_ids.append(obj_group.health_topic_id)
 
-        # Upsert the `HealthTopicRelatedHealthTopic` records.
-        for related_health_topic_id in related_health_topic_ids:
-            self.dal.iodi_health_topic_related_health_topic(
-                health_topic_id=health_topic_id,
-                related_health_topic_id=related_health_topic_id,
-            )
+            # Upsert the `HealthTopicRelatedHealthTopic` records.
+            for related_health_topic_id in related_health_topic_ids:
+                self.dal.iodi_health_topic_related_health_topic(
+                    health_topic_id=health_topic_id,
+                    related_health_topic_id=related_health_topic_id,
+                )
 
         # Upsert the `SeeReference` records and retrieve their PK IDs.
         see_reference_ids = []

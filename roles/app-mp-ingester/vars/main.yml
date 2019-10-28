@@ -95,6 +95,11 @@ config:
     sql_password: "{{ sql_password }}"
     sql_db: "test"
 
+    # MedlinePlus configuration settings.
+    medline:
+        health_topics_url: "https://medlineplus.gov/healthtopics.html"
+        group_class_body_name: "Body Location/Systems"
+
     # Sentry configuration settings.
     sentry:
         dsn:
@@ -110,6 +115,11 @@ config:
     sql_password: "{{ sql_password }}"
     sql_db: "fightfor"
 
+    # MedlinePlus configuration settings.
+    medline:
+        health_topics_url: "https://medlineplus.gov/healthtopics.html"
+        group_class_body_name: "Body Location/Systems"
+
     # Sentry configuration settings.
     sentry:
         dsn:
@@ -124,6 +134,11 @@ config:
     sql_username: "{{ system.user }}"
     sql_password: "{{ sql_password }}"
     sql_db: "fightfor"
+
+    # MedlinePlus configuration settings.
+    medline:
+        health_topics_url: "https://medlineplus.gov/healthtopics.html"
+        group_class_body_name: "Body Location/Systems"
 
     # Sentry configuration settings.
     sentry:

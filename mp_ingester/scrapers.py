@@ -2,10 +2,14 @@ import io
 from lxml import html as lxml_html
 from typing import List, Dict, Union
 
-import requests
+import requests_async as requests
 
 from mp_ingester.loggers import create_logger
 from mp_ingester.excs import MedlinePlusHttpRequestGetError
+
+
+TypeHealthTopicGroupClasses = List[Dict[str, Union[str, List[Dict[str, str]]]]]
+TypeHealthTopicBodyParts = List[Dict[str, Union[str, List[Dict[str, str]]]]]
 
 
 class ScraperBase:
@@ -23,39 +27,28 @@ class ScraperBase:
 class ScraperMedlineBase(ScraperBase):
     """ MedlinePlus scraper base-class."""
 
-    def __init__(self, medline_url: str, **kwargs):
-        """ Constructor and initialization.
+    async def fetch_page(self, url: str) -> requests.Response:
+        """ Fetches a given URL and returns the response.
 
         Args:
-            medline_url (str): The URL of the MedlinePlus page that will be
-                scraped.
-        """
-
-        super(ScraperMedlineBase, self).__init__(**kwargs)
-
-        self.medline_url = medline_url
-
-    def fetch_page(self) -> requests.Response:
-        """ Fetches the URL defined under `self.medline_url` and returns the
-            response.
+            url (str): The URL to fetch.
 
         Returns:
-            requests.Response: The response retrieved when fetching
-                `self.medline_url`.
+            requests.Response: The response retrieved when fetching the given
+                url.
         """
 
         self.logger.info(
-            f"Retrieving HTML content under URL {self.medline_url}."
+            f"Retrieving HTML content under URL {url}."
         )
 
-        response = requests.get(url=self.medline_url)
+        response = await requests.get(url=url)
 
         if not response.ok:
             msg = (
-                f"Could not retrieve HTML content under URL "
-                f"{self.medline_url}. A response with status code"
-                f"of {response.status_code} and content of '{response.content}'"
-                f"was received."
+                f"Could not retrieve HTML content under URL {url}. A response "
+                f"with status code of {response.status_code} and content of "
+                f"'{response.content}' was received."
             )
             self.logger.error(msg)
             raise (MedlinePlusHttpRequestGetError(msg))
@@ -68,31 +61,23 @@ class ScraperHealthTopicGroupClasses(ScraperMedlineBase):
         health-topic group classes and health-topic groups under them.
     """
 
-    def __init__(self, medline_health_topics_url: str, **kwargs):
-        """Constructor and initialization.
+    async def scrape(
+        self, medline_health_topics_url: str
+    ) -> TypeHealthTopicGroupClasses:
+        """ Scrapes the MedlinePlus health topics page and retrieves the
+            MedlinePlus health-topic groups categorized by their assigned class.
 
         Args:
             medline_health_topics_url (str): The URL of the MedlinePlus health
                 topics.
-        """
-
-        super(ScraperHealthTopicGroupClasses, self).__init__(
-            medline_url=medline_health_topics_url, **kwargs
-        )
-
-        self.medline_health_topics_url = medline_health_topics_url
-
-    def scrape(self) -> List[Dict[str, Union[str, List[Dict[str, str]]]]]:
-        """ Scrapes the MedlinePlus health topics page and retrieves the
-            MedlinePlus health-topic groups categorized by their assigned class.
 
         Returns:
-            List[Dict[str, Union[str, List[Dict[str, str]]]]]: The scraped data.
+            TypeHealthTopicGroupClasses: The scraped data.
         """
 
         results = []
 
-        response = self.fetch_page()
+        response = await self.fetch_page(url=medline_health_topics_url)
 
         # Parse the HTML source with the XML parser.
         doc = lxml_html.parse(io.StringIO(response.content.decode("utf-8")))
@@ -135,31 +120,23 @@ class ScraperHealthTopicGroupBodyParts(ScraperMedlineBase):
         health-topic group body parts and health-topics under them.
     """
 
-    def __init__(self, medline_health_topic_group_url: str, **kwargs):
-        """Constructor and initialization.
-
-        Args:
-            medline_health_topics_url (str): The URL of the MedlinePlus health
-                topics.
-        """
-
-        super(ScraperHealthTopicGroupBodyParts, self).__init__(
-            medline_url=medline_health_topic_group_url, **kwargs
-        )
-
-        self.medline_health_topic_group_url = medline_health_topic_group_url
-
-    def scrape(self) -> List[Dict[str, Union[str, List[Dict[str, str]]]]]:
+    async def scrape(
+        self, medline_health_topic_group_url: str
+    ) -> TypeHealthTopicBodyParts:
         """ Scrapes the MedlinePlus health topics page and retrieves the
             MedlinePlus health-topic groups categorized by their assigned class.
 
+        Args:
+            medline_health_topic_group_url (str): The URL of the MedlinePlus
+                health topics.
+
         Returns:
-            List[Dict[str, Union[str, List[Dict[str, str]]]]]: The scraped data.
+            TypeHealthTopicBodyParts: The scraped data.
         """
 
         results = []
 
-        response = self.fetch_page()
+        response = await self.fetch_page(url=medline_health_topic_group_url)
 
         # Parse the HTML source with the XML parser.
         doc = lxml_html.parse(io.StringIO(response.content.decode("utf-8")))
@@ -184,7 +161,7 @@ class ScraperHealthTopicGroupBodyParts(ScraperMedlineBase):
 
             results.append(
                 {
-                    "group_url": self.medline_health_topic_group_url,
+                    "group_url": medline_health_topic_group_url,
                     "name": element_body_part.text,
                     "health_topics": [
                         {
