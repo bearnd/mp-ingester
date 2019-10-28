@@ -23,39 +23,28 @@ class ScraperBase:
 class ScraperMedlineBase(ScraperBase):
     """ MedlinePlus scraper base-class."""
 
-    def __init__(self, medline_url: str, **kwargs):
-        """ Constructor and initialization.
+    async def fetch_page(self, url: str) -> requests.Response:
+        """ Fetches a given URL and returns the response.
 
         Args:
-            medline_url (str): The URL of the MedlinePlus page that will be
-                scraped.
-        """
-
-        super(ScraperMedlineBase, self).__init__(**kwargs)
-
-        self.medline_url = medline_url
-
-    def fetch_page(self) -> requests.Response:
-        """ Fetches the URL defined under `self.medline_url` and returns the
-            response.
+            url (str): The URL to fetch.
 
         Returns:
-            requests.Response: The response retrieved when fetching
-                `self.medline_url`.
+            requests.Response: The response retrieved when fetching the given
+                url.
         """
 
         self.logger.info(
-            f"Retrieving HTML content under URL {self.medline_url}."
+            f"Retrieving HTML content under URL {url}."
         )
 
-        response = requests.get(url=self.medline_url)
+        response = await requests.get(url=url)
 
         if not response.ok:
             msg = (
-                f"Could not retrieve HTML content under URL "
-                f"{self.medline_url}. A response with status code"
-                f"of {response.status_code} and content of '{response.content}'"
-                f"was received."
+                f"Could not retrieve HTML content under URL {url}. A response "
+                f"with status code of {response.status_code} and content of "
+                f"'{response.content}' was received."
             )
             self.logger.error(msg)
             raise (MedlinePlusHttpRequestGetError(msg))
