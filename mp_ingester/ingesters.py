@@ -365,7 +365,6 @@ class IngesterMedlineHealthTopics(IngesterDocumentBase):
                 health_topic_id=health_topic_id, descriptor_id=descriptor_id
             )
 
-
         if do_ingest_links:
             # Retrieve the PK IDs of the related `HealthTopic` records.
             related_health_topic_ids = []
