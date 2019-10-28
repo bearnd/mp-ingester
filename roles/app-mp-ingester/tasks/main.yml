@@ -188,3 +188,23 @@
   become: true
   become_user: "{{ system.user }}"
   when: is_vagrant is not defined or is_vagrant == False
+
+- name: Set up a daily cron-job to ingest the MedlinePlus Health Topic Group
+        data.
+  cron:
+    name: "Ingest the MedlinePlus Health Topic Group data"
+    special_time: daily
+    job: "cd {{ system.directories.share }}/src && {{ system.directories.virtual_env }}/bin/python -m mp_ingester.mp_ingester --mode groups --config-file='{{ system.directories.config }}/{{ project.name }}-prod.json' && curl -fsS --retry 3 https://hc-ping.com/c0a4b38c-8b5b-4615-8be9-906f11d54d10 > /dev/null"
+  become: true
+  become_user: "{{ system.user }}"
+  when: is_vagrant is not defined or is_vagrant == False
+
+
+- name: Set up a daily cron-job to ingest the MedlinePlus Health Topic data.
+  cron:
+    name: "Ingest the MedlinePlus Health Topic data"
+    special_time: daily
+    job: "cd {{ system.directories.share }}/src && {{ system.directories.virtual_env }}/bin/python -m mp_ingester.mp_ingester --mode topics --config-file='{{ system.directories.config }}/{{ project.name }}-prod.json' && curl -fsS --retry 3 https://hc-ping.com/e90d13ca-0909-464f-852a-b8f5fe923668 > /dev/null"
+  become: true
+  become_user: "{{ system.user }}"
+  when: is_vagrant is not defined or is_vagrant == False
