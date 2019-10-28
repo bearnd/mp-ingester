@@ -2,7 +2,7 @@ import io
 from lxml import html as lxml_html
 from typing import List, Dict, Union
 
-import requests
+import requests_async as requests
 
 from mp_ingester.loggers import create_logger
 from mp_ingester.excs import MedlinePlusHttpRequestGetError
