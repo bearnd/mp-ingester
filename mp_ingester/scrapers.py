@@ -184,6 +184,7 @@ class ScraperHealthTopicGroupBodyParts(ScraperMedlineBase):
 
             results.append(
                 {
+                    "group_url": self.medline_health_topic_group_url,
                     "name": element_body_part.text,
                     "health_topics": [
                         {
