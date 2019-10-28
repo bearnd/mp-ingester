@@ -6,13 +6,16 @@
 import os
 import argparse
 import asyncio
+from typing import Dict
 
+import wget
 from fform.dals_mp import DalMedline
 
 from mp_ingester.parsers import ParserXmlMedlineGroups
 from mp_ingester.parsers import ParserXmlMedlineHealthTopic
 from mp_ingester.scrapers import ScraperHealthTopicGroupClasses
 from mp_ingester.scrapers import ScraperHealthTopicGroupBodyParts
+from mp_ingester.scrapers import ScraperMedlineFiles
 from mp_ingester.scrapers import TypeHealthTopicGroupClasses
 from mp_ingester.scrapers import TypeHealthTopicBodyParts
 from mp_ingester.ingesters import IngesterMedlineGroupClasses
@@ -73,6 +76,42 @@ async def _scrape_health_topic_body_parts(
         health_topic_body_parts.extend(result)
 
     return health_topic_body_parts
+
+
+async def _scrape_medline_files(medline_xml_files_url: str) -> Dict[str, str]:
+    # Scrape MedlinePlus for the links to the latest XML files.
+    scraper_classes = ScraperMedlineFiles()
+    medline_xml_files = await scraper_classes.scrape(
+        medline_xml_files_url=medline_xml_files_url
+    )
+
+    return medline_xml_files
+
+
+async def _download_file_groups(medline_xml_files_url: str) -> str:
+    filename_output = "/tmp/mplus_topic_groups.xml"
+    medline_xml_files = await _scrape_medline_files(
+        medline_xml_files_url=medline_xml_files_url
+    )
+
+    wget.download(
+        url=medline_xml_files["health_topic_group_xml"], out=filename_output
+    )
+
+    return filename_output
+
+
+async def _download_file_topic(medline_xml_files_url: str) -> str:
+    filename_output = "/tmp/mplus_topics.xml"
+    medline_xml_files = await _scrape_medline_files(
+        medline_xml_files_url=medline_xml_files_url
+    )
+
+    wget.download(
+        url=medline_xml_files["health_topic_xml"], out=filename_output
+    )
+
+    return filename_output
 
 
 async def main(args):
