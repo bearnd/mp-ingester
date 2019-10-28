@@ -38,9 +38,7 @@ class ScraperMedlineBase(ScraperBase):
                 url.
         """
 
-        self.logger.info(
-            f"Retrieving HTML content under URL {url}."
-        )
+        self.logger.info(f"Retrieving HTML content under URL {url}.")
 
         response = await requests.get(url=url)
 
