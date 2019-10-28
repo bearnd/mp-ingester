@@ -199,7 +199,7 @@ async def main(args):
             ingester_topics.ingest(document=topic, do_ingest_links=False)
 
         # Re-ingest, this time including links to related topics.
-        topics = parser_topics.parse(filename_xml=arguments.filename)
+        topics = parser_topics.parse(filename_xml=filename_xml)
         for topic in topics:
             ingester_topics.ingest(document=topic, do_ingest_links=True)
 
