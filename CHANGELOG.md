@@ -1,5 +1,9 @@
 ## Changelog
 
+### v0.1.1
+
+- Updated the Ansible variables and replaced the SQL password with the correct one.
+
 ### v0.1.0
 
 - Story No. 1699: Scaffold new `mp-ingester` service.
